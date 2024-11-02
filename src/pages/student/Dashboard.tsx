@@ -21,10 +21,10 @@ function StudentDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 px-4 sm:px-0">My Courses</h1>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Courses</h1>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         {courses.map((course, index) => (
           <motion.div
             key={course.id}
@@ -36,37 +36,41 @@ function StudentDashboard() {
             <img
               src={course.imageUrl}
               alt={course.title}
-              className="w-full h-32 sm:h-48 object-cover cursor-pointer"
+              className="w-full h-28 sm:h-36 md:h-48 object-cover cursor-pointer"
               onClick={() => navigate(`/course/${course.id}`)}
             />
-            
-            <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-              <h3 className="text-base sm:text-xl font-bold text-gray-900 line-clamp-1">{course.title}</h3>
-              <p className="text-sm text-gray-600 line-clamp-2">{course.description}</p>
-              
-              <div className="flex flex-wrap gap-2 sm:gap-4 justify-between">
+
+            <div className="p-2 sm:p-3 md:p-4 space-y-2 sm:space-y-3">
+              <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 line-clamp-1">
+                {course.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+                {course.description}
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4">
                 <button
                   onClick={() => navigate(`/course/${course.id}`)}
-                  className="flex items-center space-x-1 sm:space-x-2 text-indigo-600 hover:text-indigo-800"
+                  className="flex items-center justify-start space-x-1 text-indigo-600 hover:text-indigo-800"
                 >
-                  <Video className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span className="text-sm">Videos</span>
+                  <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Videos</span>
                 </button>
-                
+
                 <button
                   onClick={() => navigate(`/course/${course.id}`)}
-                  className="flex items-center space-x-1 sm:space-x-2 text-indigo-600 hover:text-indigo-800"
+                  className="flex items-center justify-start space-x-1 text-indigo-600 hover:text-indigo-800"
                 >
-                  <TestTube className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span className="text-sm">Tests</span>
+                  <TestTube className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Tests</span>
                 </button>
-                
+
                 <button
                   onClick={() => navigate(`/course/${course.id}`)}
-                  className="flex items-center space-x-1 sm:space-x-2 text-indigo-600 hover:text-indigo-800"
+                  className="flex items-center justify-start space-x-1 text-indigo-600 hover:text-indigo-800"
                 >
-                  <Book className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span className="text-sm">Materials</span>
+                  <Book className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Materials</span>
                 </button>
               </div>
             </div>
