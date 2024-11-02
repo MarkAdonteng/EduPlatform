@@ -198,36 +198,47 @@ function AdminDashboard() {
     switch (activeTab) {
       case 'courses':
         return (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((course) => (
-              <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                <img src={course.imageUrl} alt={course.title} className="w-full h-48 object-cover" />
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold">{course.title}</h3>
-                  <p className="text-gray-600 mt-2">{course.description}</p>
-                  <div className="mt-4 flex justify-end space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditingItem(course);
-                        setShowModal(true);
-                      }}
-                      className="p-2 text-blue-600 hover:text-blue-800"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(course.id, 'courses')}
-                      className="p-2 text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 px-2 sm:px-4">
+  {courses.map((course) => (
+    <div 
+      key={course.id} 
+      className="bg-white rounded-lg shadow-md overflow-hidden"
+    >
+      <img 
+        src={course.imageUrl} 
+        alt={course.title} 
+        className="w-full h-32 sm:h-40 md:h-48 object-cover" 
+      />
+      <div className="p-2 sm:p-3 md:p-4">
+        <h3 className="text-sm sm:text-base md:text-lg font-semibold line-clamp-1">
+          {course.title}
+        </h3>
+        <p className="text-gray-600 mt-1 sm:mt-2 text-xs sm:text-sm md:text-base line-clamp-2">
+          {course.description}
+        </p>
+        <div className="mt-2 sm:mt-3 md:mt-4 flex justify-end space-x-1 sm:space-x-2">
+          <button
+            onClick={() => {
+              setEditingItem(course);
+              setShowModal(true);
+            }}
+            className="p-1 sm:p-1.5 md:p-2 text-blue-600 hover:text-blue-800"
+          >
+            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+          </button>
+          <button
+            onClick={() => handleDelete(course.id, 'courses')}
+            className="p-1 sm:p-1.5 md:p-2 text-red-600 hover:text-red-800"
+          >
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
         );
-
+        
       case 'videos':
         return (
           <div className="space-y-6">
