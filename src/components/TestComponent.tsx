@@ -6,7 +6,7 @@ interface TestComponentProps {
   courseId: string;
 }
 
-function TestComponent({ courseId }: TestComponentProps) {
+function TestComponent({ }: TestComponentProps) {
   const [currentQuestion, setCurrentQuestion] = React.useState(0);
   const [answers, setAnswers] = React.useState<number[]>([]);
   const [showResults, setShowResults] = React.useState(false);

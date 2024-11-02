@@ -3,12 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Login from './pages/login';
 import AdminDashboard from './pages/admin/Dashboard';
-
+import StudentDashboard from './pages/student/Dashboard';
 import CourseView from './pages/student/CourseView';
 import Bookshop from './pages/student/Bookshop';
 import Layout from './components/Layout';
-import StudentDashboard from './pages/student/Dashboard';
-
 
 const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: string }) => {
   const { user, isAuthenticated } = useAuthStore();
@@ -41,7 +39,7 @@ function App() {
         <Route path="/dashboard" element={
           <ProtectedRoute allowedRole="student">
             <Layout>
-              <StudentDashboard/>
+              <StudentDashboard />
             </Layout>
           </ProtectedRoute>
         } />

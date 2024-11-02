@@ -1,176 +1,227 @@
-import React, { useState } from 'react';
-import { PlusCircle, Book, Video, TestTube, Users, X, FileText, Trash2, Edit } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PlusCircle, Book, Video, TestTube, X, FileText, Trash2, Edit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: string;
-}
-
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-}
-
-interface Video {
-  id: string;
-  title: string;
-  courseId: string;
-  url: string;
-  description: string;
-}
-
-interface Test {
-  id: string;
-  title: string;
-  courseId: string;
-  questions: Question[];
-}
-
-interface Question {
-  text: string;
-  options: string[];
-  correctAnswer: number;
-}
-
-interface Note {
-  id: string;
-  title: string;
-  courseId: string;
-  content: string;
-}
+import { useCourseStore } from '../../store/courseStore';
 
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('courses');
   const [showModal, setShowModal] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [tests, setTests] = useState<Test[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([{ text: '', options: ['', '', '', ''], correctAnswer: 0 }]);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [questions, setQuestions] = useState<{ text: string; options: string[]; correctAnswer: number; }[]>([
+    { text: '', options: ['', '', '', ''], correctAnswer: 0 }
+  ]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const { 
+    courses, 
+    videos, 
+    tests, 
+    materials, 
+    loading,
+    error,
+    fetchCourses,
+    addCourse,
+    updateCourse,
+    deleteCourse,
+    addVideo,
+    updateVideo,
+    deleteVideo,
+    addTest,
+    updateTest,
+    deleteTest,
+    addMaterial,
+    updateMaterial,
+    deleteMaterial
+  } = useCourseStore();
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
+
+  const tabs = [
+    { id: 'courses', label: 'Courses', icon: Book },
+    { id: 'videos', label: 'Videos', icon: Video },
+    { id: 'tests', label: 'Tests', icon: TestTube },
+    { id: 'materials', label: 'Materials', icon: FileText },
+  ];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    switch (activeTab) {
-      case 'users':
-        const newUser = {
-          id: crypto.randomUUID(),
-          username: formData.get('username') as string,
-          email: formData.get('email') as string,
-          role: formData.get('role') as string,
-        };
-        setUsers([...users, newUser]);
-        break;
+    try {
+      if (editingItem) {
+        switch (activeTab) {
+          case 'courses':
+            await updateCourse(editingItem.id, {
+              title: formData.get('title') as string,
+              description: formData.get('description') as string,
+              imageUrl: formData.get('imageUrl') as string,
+            });
+            break;
+          case 'videos':
+            await updateVideo(selectedCourse, editingItem.id, {
+              title: formData.get('title') as string,
+              url: formData.get('url') as string,
+              description: formData.get('description') as string,
+            });
+            break;
+          case 'tests':
+            await updateTest(selectedCourse, editingItem.id, {
+              title: formData.get('title') as string,
+              questions: JSON.parse(formData.get('questions') as string),
+            });
+            break;
+            case 'materials':
+              await updateMaterial(
+                  selectedCourse, // courseId
+                  editingItem.id, // materialId
+                  {
+                      title: formData.get('title') as string,
+                      type: formData.get('type') as 'pdf' | 'doc' | 'ppt' | 'other',
+                      description: formData.get('description') as string,
+                  }
+              );
+              break;
+          
+        }
+      } else {
+        switch (activeTab) {
+          case 'courses':
+            await addCourse({
+              id: crypto.randomUUID(),
+              title: formData.get('title') as string,
+              description: formData.get('description') as string,
+              imageUrl: formData.get('imageUrl') as string,
+              icon: 'book'
+            });
+            break;
+          case 'videos':
+            await addVideo(selectedCourse, {
+              id: crypto.randomUUID(),
+              courseId: selectedCourse,
+              title: formData.get('title') as string,
+              url: formData.get('url') as string,
+              description: formData.get('description') as string,
+            });
+            break;
+          case 'tests':
+            await addTest(selectedCourse, {
+              id: crypto.randomUUID(),
+              courseId: selectedCourse,
+              title: formData.get('title') as string,
+              questions: questions.map((question, _index) => ({
+                ...question,
+                id: crypto.randomUUID(), // or you can use `index` if a sequential ID is sufficient
+              })),
+            });
+            break;
+          case 'materials':
+            if (!selectedFile) {
+              alert('Please select a file to upload');
+              return;
+            }
+            
+            await addMaterial(
+              selectedCourse,
+              {
+                id: crypto.randomUUID(),
+                title: formData.get('title') as string,
+                courseId: selectedCourse,
+                type: formData.get('type') as 'pdf' | 'doc' | 'ppt' | 'other',
+                url: '', // Will be set by the store after upload
+                description: formData.get('description') as string,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              },
+              
+            );
+            break;
+        }
+      }
 
-      case 'courses':
-        const newCourse = {
-          id: crypto.randomUUID(),
-          title: formData.get('title') as string,
-          description: formData.get('description') as string,
-          imageUrl: formData.get('imageUrl') as string,
-        };
-        setCourses([...courses, newCourse]);
-        break;
-
-      case 'videos':
-        const newVideo = {
-          id: crypto.randomUUID(),
-          title: formData.get('title') as string,
-          courseId: formData.get('courseId') as string,
-          url: formData.get('url') as string,
-          description: formData.get('description') as string,
-        };
-        setVideos([...videos, newVideo]);
-        break;
-
-      case 'tests':
-        const newTest = {
-          id: crypto.randomUUID(),
-          title: formData.get('title') as string,
-          courseId: formData.get('courseId') as string,
-          questions: questions,
-        };
-        setTests([...tests, newTest]);
-        break;
-
-      case 'notes':
-        const newNote = {
-          id: crypto.randomUUID(),
-          title: formData.get('title') as string,
-          courseId: formData.get('courseId') as string,
-          content: formData.get('content') as string,
-        };
-        setNotes([...notes, newNote]);
-        break;
+      setShowModal(false);
+      setEditingItem(null);
+      setSelectedFile(null);
+      setSelectedCourse('');
+      setQuestions([{ text: '', options: ['', '', '', ''], correctAnswer: 0 }]);
+    } catch (error) {
+      console.error('Error submitting form:', error);
     }
-
-    setShowModal(false);
-    setQuestions([{ text: '', options: ['', '', '', ''], correctAnswer: 0 }]);
   };
 
-  const handleAddQuestion = () => {
-    setQuestions([...questions, { text: '', options: ['', '', '', ''], correctAnswer: 0 }]);
-  };
-
-  const handleQuestionChange = (index: number, field: string, value: string | number) => {
-    const newQuestions = [...questions];
-    if (field === 'text') {
-      newQuestions[index].text = value as string;
-    } else if (field === 'correctAnswer') {
-      newQuestions[index].correctAnswer = value as number;
-    } else {
-      const optionIndex = parseInt(field);
-      newQuestions[index].options[optionIndex] = value as string;
+  const handleDelete = async (id: string, type: string, courseId?: string) => {
+    try {
+      switch (type) {
+        case 'courses':
+          await deleteCourse(id);
+          break;
+        case 'videos':
+          if (courseId) await deleteVideo(courseId, id);
+          break;
+        case 'tests':
+          if (courseId) await deleteTest(courseId, id);
+          break;
+        case 'materials':
+          if (courseId) await deleteMaterial(courseId, id);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error deleting ${type}:`, error);
     }
-    setQuestions(newQuestions);
   };
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'users':
-        return (
-          <div className="grid grid-cols-1 gap-4">
-            {users.map((user) => (
-              <div key={user.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                <div>
-                  <h3 className="font-medium">{user.username}</h3>
-                  <p className="text-sm text-gray-500">{user.email} - {user.role}</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="p-2 text-blue-600 hover:text-blue-800">
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-red-600 hover:text-red-800">
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      );
+    }
 
+    if (error) {
+      return (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
       case 'courses':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <div key={course.id} className="bg-white p-4 rounded-lg shadow">
-                <img src={course.imageUrl} alt={course.title} className="w-full h-48 object-cover rounded-lg mb-4" />
-                <h3 className="font-medium">{course.title}</h3>
-                <p className="text-sm text-gray-500">{course.description}</p>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <button className="p-2 text-blue-600 hover:text-blue-800">
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-red-600 hover:text-red-800">
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+              <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                <img src={course.imageUrl} alt={course.title} className="w-full h-48 object-cover" />
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold">{course.title}</h3>
+                  <p className="text-gray-600 mt-2">{course.description}</p>
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingItem(course);
+                        setShowModal(true);
+                      }}
+                      className="p-2 text-blue-600 hover:text-blue-800"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(course.id, 'courses')}
+                      className="p-2 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -179,23 +230,95 @@ function AdminDashboard() {
 
       case 'videos':
         return (
-          <div className="grid grid-cols-1 gap-4">
-            {videos.map((video) => (
-              <div key={video.id} className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-medium">{video.title}</h3>
-                <p className="text-sm text-gray-500">{video.description}</p>
-                <div className="mt-2">
-                  <a href={video.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm">
-                    Watch Video
-                  </a>
+          <div className="space-y-6">
+            <div className="mb-4">
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Select a course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>{course.title}</option>
+                ))}
+              </select>
+            </div>
+            {selectedCourse && videos[selectedCourse]?.map((video) => (
+              <div key={video.id} className="bg-white p-4 rounded-lg shadow-md">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold">{video.title}</h3>
+                    <p className="text-gray-600 mt-1">{video.description}</p>
+                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 mt-2 inline-block">
+                      Watch Video
+                    </a>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingItem(video);
+                        setShowModal(true);
+                      }}
+                      className="p-2 text-blue-600 hover:text-blue-800"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(video.id, 'videos', selectedCourse)}
+                      className="p-2 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <button className="p-2 text-blue-600 hover:text-blue-800">
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-red-600 hover:text-red-800">
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+              </div>
+            ))}
+          </div>
+        );
+
+      case 'materials':
+        return (
+          <div className="space-y-6">
+            <div className="mb-4">
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Select a course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>{course.title}</option>
+                ))}
+              </select>
+            </div>
+            {selectedCourse && materials[selectedCourse]?.map((material) => (
+              <div key={material.id} className="bg-white p-4 rounded-lg shadow-md">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold">{material.title}</h3>
+                    <p className="text-gray-600 mt-1">{material.description}</p>
+                    <p className="text-sm text-gray-500 mt-1">Type: {material.type.toUpperCase()}</p>
+                    <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 mt-2 inline-block">
+                      Download Material
+                    </a>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingItem(material);
+                        setShowModal(true);
+                      }}
+                      className="p-2 text-blue-600 hover:text-blue-800"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(material.id, 'materials', selectedCourse)}
+                      className="p-2 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -204,52 +327,44 @@ function AdminDashboard() {
 
       case 'tests':
         return (
-          <div className="grid grid-cols-1 gap-4">
-            {tests.map((test) => (
-              <div key={test.id} className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-medium">{test.title}</h3>
-                <p className="text-sm text-gray-500">{test.questions.length} questions</p>
-                <div className="mt-4 space-y-2">
-                  {test.questions.map((question, index) => (
-                    <div key={index} className="pl-4 border-l-2 border-gray-200">
-                      <p className="font-medium">{question.text}</p>
-                      <div className="ml-4 text-sm text-gray-600">
-                        {question.options.map((option, optIndex) => (
-                          <div key={optIndex} className={optIndex === question.correctAnswer ? 'text-green-600' : ''}>
-                            {optIndex + 1}. {option}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <button className="p-2 text-blue-600 hover:text-blue-800">
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-red-600 hover:text-red-800">
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-
-      case 'notes':
-        return (
-          <div className="grid grid-cols-1 gap-4">
-            {notes.map((note) => (
-              <div key={note.id} className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-medium">{note.title}</h3>
-                <p className="text-sm text-gray-500 mt-2">{note.content}</p>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <button className="p-2 text-blue-600 hover:text-blue-800">
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button className="p-2 text-red-600 hover:text-red-800">
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+          <div className="space-y-6">
+            <div className="mb-4">
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Select a course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>{course.title}</option>
+                ))}
+              </select>
+            </div>
+            {selectedCourse && tests[selectedCourse]?.map((test) => (
+              <div key={test.id} className="bg-white p-4 rounded-lg shadow-md">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold">{test.title}</h3>
+                    <p className="text-gray-600 mt-1">{test.questions.length} questions</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingItem(test);
+                        setQuestions(test.questions);
+                        setShowModal(true);
+                      }}
+                      className="p-2 text-blue-600 hover:text-blue-800"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(test.id, 'tests', selectedCourse)}
+                      className="p-2 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -260,121 +375,149 @@ function AdminDashboard() {
 
   const renderForm = () => {
     switch (activeTab) {
-      case 'users':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
-              <select
-                id="role"
-                name="role"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              >
-                <option value="student">Student</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-          </div>
-        );
-
       case 'courses':
         return (
-          <div className="space-y-4">
+          <>
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">Course Title</label>
+              <label className="block text-sm font-medium text-gray-700">Title</label>
               <input
                 type="text"
-                id="title"
                 name="title"
+                defaultValue={editingItem?.title}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               />
             </div>
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
               <textarea
-                id="description"
                 name="description"
+                defaultValue={editingItem?.description}
                 rows={3}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               />
             </div>
             <div>
-              <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700">Image URL</label>
+              <label className="block text-sm font-medium text-gray-700">Image URL</label>
               <input
                 type="url"
-                id="imageUrl"
                 name="imageUrl"
+                defaultValue={editingItem?.imageUrl}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               />
             </div>
-          </div>
+          </>
         );
 
       case 'videos':
         return (
-          <div className="space-y-4">
+          <>
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">Video Title</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="courseId" className="block text-sm font-medium text-gray-700">Course</label>
+              <label className="block text-sm font-medium text-gray-700">Course</label>
               <select
-                id="courseId"
                 name="courseId"
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               >
+                <option value="">Select a course</option>
                 {courses.map((course) => (
                   <option key={course.id} value={course.id}>{course.title}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700">Video URL</label>
+              <label className="block text-sm font-medium text-gray-700">Title</label>
               <input
-                type="url"
-                id="url"
-                name="url"
+                type="text"
+                name="title"
+                defaultValue={editingItem?.title}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               />
             </div>
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+              <label className="block text-sm font-medium text-gray-700">Video URL</label>
+              <input
+                type="url"
+                name="url"
+                defaultValue={editingItem?.url}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
               <textarea
-                id="description"
                 name="description"
+                defaultValue={editingItem?.description}
+                rows={3}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+          </>
+        );
+
+      case 'materials':
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Course</label>
+              <select
+                name="courseId"
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              >
+                <option value="">Select a course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>{course.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Title</label>
+              <input
+                type="text"
+                name="title"
+                defaultValue={editingItem?.title}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Type</label>
+              <select
+                name="type"
+                defaultValue={editingItem?.type}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              >
+                <option value="pdf">PDF</option>
+                <option value="doc">DOC</option>
+                <option value="ppt">PPT</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">File</label>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className={editingItem ? '' : 'required'}
+              />
+              {editingItem && <p className="text-sm text-gray-500 mt-1">Leave empty to keep current file</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                name="description"
+                defaultValue={editingItem?.description}
                 rows={3}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
@@ -385,220 +528,185 @@ function AdminDashboard() {
 
       case 'tests':
         return (
-          <div className="space-y-6">
+          <>
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">Test Title</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="courseId" className="block text-sm font-medium text-gray-700">Course</label>
+              <label className="block text-sm font-medium text-gray-700">Course</label>
               <select
-                id="courseId"
                 name="courseId"
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               >
+                <option value="">Select a course</option>
                 {courses.map((course) => (
                   <option key={course.id} value={course.id}>{course.title}</option>
                 ))}
               </select>
             </div>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Questions</h3>
-                <button
-                  type="button"
-                  onClick={handleAddQuestion}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  Add Question
-                </button>
-              </div>
-              
-              {questions.map((question, qIndex) => (
-                <div key={qIndex} className="p-4 border rounded-lg space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Question {qIndex + 1}</label>
-                    <input
-                      type="text"
-                      value={question.text}
-                      onChange={(e) => handleQuestionChange(qIndex, 'text', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      placeholder="Enter question text"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {question.options.map((option, oIndex) => (
-                      <div key={oIndex} className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={option}
-                          onChange={(e) => handleQuestionChange(qIndex, oIndex.toString(), e.target.value)}
-                          className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                          placeholder={`Option ${oIndex + 1}`}
-                          required
-                        />
-                        <input
-                          type="radio"
-                          name={`correct-${qIndex}`}
-                          checked={question.correctAnswer === oIndex}
-                          onChange={() => handleQuestionChange(qIndex, 'correctAnswer', oIndex)}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                          required
-                        />
-                        <label className="text-sm text-gray-600">Correct</label>
-                      </div>
-                    ))}
-                  </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Title</label>
+              <input
+                type="text"
+                name="title"
+                defaultValue={editingItem?.title}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Questions</label>
+              {questions.map((question, index) => (
+                <div key={index} className="border p-4 rounded-md mb-4">
+                  <input
+                    type="text"
+                    value={question.text}
+                    onChange={(e) => {
+                      const newQuestions = [...questions];
+                      newQuestions[index].text = e.target.value;
+                      setQuestions(newQuestions);
+                    }}
+                    placeholder="Question text"
+                    className="mb-2 w-full"
+                  />
+                  {question.options.map((option, optionIndex) => (
+                    <div key={optionIndex} className="flex items-center mb-2">
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => {
+                          const newQuestions = [...questions];
+                          newQuestions[index].options[optionIndex] = e.target.value;
+                          setQuestions(newQuestions);
+                        }}
+                        placeholder={`Option ${optionIndex + 1}`}
+                        className="flex-1 mr-2"
+                      />
+                      <input
+                        type="radio"
+                        name={`correct-${index}`}
+                        checked={question.correctAnswer === optionIndex}
+                        onChange={() => {
+                          const newQuestions = [...questions];
+                          newQuestions[index].correctAnswer = optionIndex;
+                          setQuestions(newQuestions);
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
               ))}
-            </div>
-          </div>
-        );
-
-      case 'notes':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">Note Title</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="courseId" className="block text-sm font-medium text-gray-700">Course</label>
-              <select
-                id="courseId"
-                name="courseId"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
+              <button
+                type="button"
+                onClick={() => setQuestions([...questions, { text: '', options: ['', '', '', ''], correctAnswer: 0 }])}
+                className="mt-2 px-4 py-2 bg-gray-100 rounded-md"
               >
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
+                Add Question
+              </button>
             </div>
-            <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700">Content</label>
-              <textarea
-                id="content"
-                name="content"
-                rows={6}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-          </div>
+          </>
         );
     }
   };
 
-  const tabs = [
-    { id: 'users', label: 'Users', icon: Users },
-    { id: 'courses', label: 'Courses', icon: Book },
-    { id: 'videos', label: 'Videos', icon: Video },
-    { id: 'tests', label: 'Tests', icon: TestTube },
-    { id: 'notes', label: 'Notes', icon: FileText },
-  ];
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
-        >
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+      <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+        <button
+          onClick={() => {
+            setEditingItem(null);
+            setShowModal(true);
+          }}
+          className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+          >
           <PlusCircle className="h-5 w-5" />
           <span>Add New</span>
         </button>
       </div>
 
       <div className="bg-white shadow rounded-lg">
-        <div className="border-b border-gray-200">
-          <nav className="flex -mb-px">
+        <div className="border-b border-gray-200 overflow-x-auto">
+          <nav className="flex flex-nowrap px-4" aria-label="Tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 px-4 py-4 text-center border-b-2 ${
+                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 text-sm font-medium whitespace-nowrap rounded-md ${
                     activeTab === tab.id
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  <div className="flex items-center justify-center space-x-2">
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{tab.label}</span>
-                  </div>
+                  <Icon className="h-5 w-5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.slice(0, 1)}</span>
                 </button>
               );
             })}
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-4">
           {renderContent()}
         </div>
       </div>
 
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6"
             >
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Add New {activeTab.slice(0, -1)}</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                  {editingItem ? `Edit ${activeTab.slice(0, -1)}` : `Add New ${activeTab.slice(0, -1)}`}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingItem(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {renderForm()}
+                
+                <div className="flex justify-end space-x-3">
                   <button
-                    onClick={() => setShowModal(false)}
-                    className="text-gray-400 hover:text-gray-500"
+                    type="button"
+                    onClick={() => {
+                      setShowModal(false);
+                      setEditingItem(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
                   >
-                    <X className="h-5 w-5" />
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                  >
+                    {editingItem ? 'Update' : 'Add'}
                   </button>
                 </div>
-
-                <form onSubmit={handleSubmit}>
-                  {renderForm()}
-                  
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Create
-                    </button>
-                  </div>
-                </form>
-              </div>
+              </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
