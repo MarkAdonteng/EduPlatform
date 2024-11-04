@@ -8,6 +8,7 @@ import CourseView from './pages/student/CourseView';
 import TestView from './pages/student/TestView';
 import Bookshop from './pages/student/Bookshop';
 import Layout from './components/Layout';
+import PaymentOverlay from './components/PaymentOverlay';
 
 const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: string }) => {
   const { user, isAuthenticated } = useAuthStore();
@@ -25,6 +26,8 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode; 
 
 function App() {
   return (
+    <>
+    <PaymentOverlay/>
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -75,6 +78,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
 
