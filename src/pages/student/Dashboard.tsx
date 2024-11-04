@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 function StudentDashboard() {
   const navigate = useNavigate();
   const { courses, fetchCourses, loading } = useCourseStore();
+  
 
   useEffect(() => {
     fetchCourses();

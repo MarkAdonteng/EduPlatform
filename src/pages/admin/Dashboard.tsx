@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Book, Video, TestTube, X, FileText, Trash2, Edit } from 'lucide-react';
+import { PlusCircle, Book, Video, TestTube, X, FileText, Trash2, Edit ,ShoppingBag} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCourseStore } from '../../store/courseStore';
+import AdminBookshop from './Bookshop';
+import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('courses');
@@ -9,6 +11,13 @@ function AdminDashboard() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteInfo, setDeleteInfo] = useState<{
+    id: string;
+    type: string;
+    courseId?: string;
+    title?: string;
+  } | null>(null);
   const [questions, setQuestions] = useState<{ text: string; options: string[]; correctAnswer: number; }[]>([
     { text: '', options: ['', '', '', ''], correctAnswer: 0 }
   ]);
@@ -44,6 +53,7 @@ function AdminDashboard() {
     { id: 'videos', label: 'Videos', icon: Video },
     { id: 'tests', label: 'Tests', icon: TestTube },
     { id: 'materials', label: 'Materials', icon: FileText },
+    { id: 'bookshop', label: 'Bookshop', icon: ShoppingBag },
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,17 +90,14 @@ function AdminDashboard() {
             });
             break;
             case 'materials':
-              await updateMaterial(
-                  selectedCourse, // courseId
-                  editingItem.id, // materialId
-                  {
-                      title: formData.get('title') as string,
-                      type: formData.get('type') as 'pdf' | 'doc' | 'ppt' | 'other',
-                      description: formData.get('description') as string,
-                  }
-              );
-              break;
-          
+            await updateMaterial(selectedCourse, editingItem.id, {
+              title: formData.get('title') as string,
+              type: formData.get('type') as 'pdf' | 'doc' | 'ppt' | 'other',
+              url: formData.get('url') as string,
+              description: formData.get('description') as string,
+              updatedAt: new Date().toISOString()
+            });
+            break;
         }
       } else {
         switch (activeTab) {
@@ -123,26 +130,17 @@ function AdminDashboard() {
               })),
             });
             break;
-          case 'materials':
-            if (!selectedFile) {
-              alert('Please select a file to upload');
-              return;
-            }
-            
-            await addMaterial(
-              selectedCourse,
-              {
-                id: crypto.randomUUID(),
-                title: formData.get('title') as string,
-                courseId: selectedCourse,
-                type: formData.get('type') as 'pdf' | 'doc' | 'ppt' | 'other',
-                url: '', // Will be set by the store after upload
-                description: formData.get('description') as string,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              },
-              
-            );
+            case 'materials':
+            await addMaterial(selectedCourse, {
+              id: crypto.randomUUID(),
+              courseId: selectedCourse,
+              title: formData.get('title') as string,
+              type: formData.get('type') as 'pdf' | 'doc' | 'ppt' | 'other',
+              url: formData.get('url') as string,
+              description: formData.get('description') as string,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
             break;
         }
       }
@@ -150,34 +148,66 @@ function AdminDashboard() {
       setShowModal(false);
       setEditingItem(null);
       setSelectedFile(null);
-      setSelectedCourse('');
+      setSelectedCourse(selectedCourse);
       setQuestions([{ text: '', options: ['', '', '', ''], correctAnswer: 0 }]);
     } catch (error) {
       console.error('Error submitting form:', error);
     }
   };
 
-  const handleDelete = async (id: string, type: string, courseId?: string) => {
-    try {
-      switch (type) {
-        case 'courses':
-          await deleteCourse(id);
-          break;
-        case 'videos':
-          if (courseId) await deleteVideo(courseId, id);
-          break;
-        case 'tests':
-          if (courseId) await deleteTest(courseId, id);
-          break;
-        case 'materials':
-          if (courseId) await deleteMaterial(courseId, id);
-          break;
-      }
-    } catch (error) {
-      console.error(`Error deleting ${type}:`, error);
-    }
-  };
+//  const handleDelete = async (id: string, type: string, courseId?: string) => {
+//     try {
+//       switch (type) {
+//         case 'courses':
+//           await deleteCourse(id);
+//           break;
+//         case 'videos':
+//           if (courseId) await deleteVideo(courseId, id);
+//           break;
+//         case 'tests':
+//           if (courseId) await deleteTest(courseId, id);
+//           break;
+//         case 'materials':
+//           if (courseId) await deleteMaterial(courseId, id);
+//           break;
+//         default:
+//           console.error(`Unknown type: ${type}`);
+//           return;
+//       }
+//       console.log(`Successfully deleted ${type} with id: ${id}`);
+//     } catch (error) {
+//       console.error(`Error deleting ${type}:`, error);
+//     }
+//   };
 
+const handleDelete = (id: string, type: string, courseId?: string, title?: string) => {
+  setDeleteInfo({ id, type, courseId, title });
+  setShowDeleteModal(true);
+};
+
+const handleConfirmDelete = async () => {
+  if (!deleteInfo) return;
+
+  try {
+    switch (deleteInfo.type) {
+      case 'courses':
+        await deleteCourse(deleteInfo.id);
+        break;
+      case 'videos':
+        if (deleteInfo.courseId) await deleteVideo(deleteInfo.courseId, deleteInfo.id);
+        break;
+      case 'tests':
+        if (deleteInfo.courseId) await deleteTest(deleteInfo.courseId, deleteInfo.id);
+        break;
+      case 'materials':
+        if (deleteInfo.courseId) await deleteMaterial(deleteInfo.courseId, deleteInfo.id);
+        break;
+    }
+  } catch (error) {
+    console.error(`Error deleting ${deleteInfo.type}:`, error);
+  }
+};
+  
   const renderContent = () => {
     if (loading) {
       return (
@@ -381,6 +411,8 @@ function AdminDashboard() {
             ))}
           </div>
         );
+        case 'bookshop':
+  return <AdminBookshop/>;
     }
   };
 
@@ -473,70 +505,73 @@ function AdminDashboard() {
           </>
         );
 
-      case 'materials':
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Course</label>
-              <select
-                name="courseId"
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              >
-                <option value="">Select a course</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
+        case 'materials':
+          return (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Course</label>
+                <select
+                  name="courseId"
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="">Select a course</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>{course.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <input
+                  type="text"
+                  name="title"
+                  defaultValue={editingItem?.title}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <select
+                  name="type"
+                  defaultValue={editingItem?.type}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="doc">DOC</option>
+                  <option value="ppt">PPT</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Material URL</label>
+                <input
+                  type="url"
+                  name="url"
+                  defaultValue={editingItem?.url}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="https://example.com/material.pdf"
+                  required
+                />
+                <p className="mt-1 text-sm text-gray-500">Enter the direct URL to the material file</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  name="description"
+                  defaultValue={editingItem?.description}
+                  rows={3}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Title</label>
-              <input
-                type="text"
-                name="title"
-                defaultValue={editingItem?.title}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Type</label>
-              <select
-                name="type"
-                defaultValue={editingItem?.type}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              >
-                <option value="pdf">PDF</option>
-                <option value="doc">DOC</option>
-                <option value="ppt">PPT</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">File</label>
-              <input
-                type="file"
-                onChange={handleFileChange}
-                className={editingItem ? '' : 'required'}
-              />
-              {editingItem && <p className="text-sm text-gray-500 mt-1">Leave empty to keep current file</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
-              <textarea
-                name="description"
-                defaultValue={editingItem?.description}
-                rows={3}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-          </div>
-        );
-
+          );
+  
       case 'tests':
         return (
           <>
@@ -720,6 +755,17 @@ function AdminDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteInfo(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        type={deleteInfo?.type || ''}
+        title={deleteInfo?.title}
+      />
     </div>
   );
 }

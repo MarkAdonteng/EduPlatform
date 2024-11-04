@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Video, TestTube, Book, ArrowLeft } from 'lucide-react';
 import VideoPlayer from '../../components/VideoPlayer';
-import TestComponent from '../../components/TestComponent';
+import TestList from '../../components/TestList';
 import MaterialsList from '../../components/MaterialsList';
 import { useCourseStore } from '../../store/courseStore';
 import { motion } from 'framer-motion';
@@ -12,11 +12,43 @@ function CourseView() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'videos' | 'tests' | 'materials'>('videos');
   const { courses, videos, tests, materials } = useCourseStore();
-  
+
   const course = courses.find(c => c.id === id);
   const courseVideos = videos[id!] || [];
   const courseTests = tests[id!] || [];
   const courseMaterials = materials[id!] || [];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'videos':
+        return (
+          <div className="space-y-6">
+            {courseVideos.length > 0 ? (
+              courseVideos.map((video) => (
+                <VideoPlayer key={video.id} video={video} />
+              ))
+            ) : (
+              <p className="text-center text-gray-500">No videos available for this course yet.</p>
+            )}
+          </div>
+        );
+
+      case 'tests':
+        return <TestList courseId={id!} tests={courseTests} />;
+
+      case 'materials':
+        return (
+          courseMaterials.length > 0 ? (
+            <MaterialsList materials={courseMaterials} />
+          ) : (
+            <p className="text-center text-gray-500">No materials available for this course yet.</p>
+          )
+        );
+
+      default:
+        return null;
+    }
+  };
 
   if (!course) {
     return (
@@ -98,33 +130,7 @@ function CourseView() {
         </div>
 
         <div className="p-6">
-          {activeTab === 'videos' && (
-            <div className="space-y-6">
-              {courseVideos.length > 0 ? (
-                courseVideos.map((video) => (
-                  <VideoPlayer key={video.id} video={video} />
-                ))
-              ) : (
-                <p className="text-center text-gray-500">No videos available for this course yet.</p>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'tests' && (
-            courseTests.length > 0 ? (
-              <TestComponent courseId={id!} />
-            ) : (
-              <p className="text-center text-gray-500">No tests available for this course yet.</p>
-            )
-          )}
-
-          {activeTab === 'materials' && (
-            courseMaterials.length > 0 ? (
-              <MaterialsList materials={courseMaterials} />
-            ) : (
-              <p className="text-center text-gray-500">No materials available for this course yet.</p>
-            )
-          )}
+          {renderContent()}
         </div>
       </div>
     </motion.div>

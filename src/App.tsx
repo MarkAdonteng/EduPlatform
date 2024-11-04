@@ -5,6 +5,7 @@ import Login from './pages/login';
 import AdminDashboard from './pages/admin/Dashboard';
 import StudentDashboard from './pages/student/Dashboard';
 import CourseView from './pages/student/CourseView';
+import TestView from './pages/student/TestView';
 import Bookshop from './pages/student/Bookshop';
 import Layout from './components/Layout';
 
@@ -52,6 +53,14 @@ function App() {
           </ProtectedRoute>
         } />
         
+        <Route path="/course/:courseId/test/:testId" element={
+          <ProtectedRoute allowedRole="student">
+            <Layout>
+              <TestView />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
         <Route path="/bookshop" element={
           <ProtectedRoute allowedRole="student">
             <Layout>
@@ -61,6 +70,9 @@ function App() {
         } />
         
         <Route path="/" element={<Navigate to="/login" />} />
+        
+        {/* Catch-all route for unmatched paths */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   );

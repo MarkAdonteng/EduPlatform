@@ -1,12 +1,6 @@
+import React from 'react';
 import { FileText, Download, FileType } from 'lucide-react';
-
-interface Material {
-  id: string;
-  title: string;
-  type: string;
-  url: string;
-  description?: string; // Make description optional
-}
+import { Material } from '../types';
 
 interface MaterialsListProps {
   materials: Material[];
@@ -50,6 +44,7 @@ function MaterialsList({ materials }: MaterialsListProps) {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 transition-colors"
+              download
             >
               <Download className="h-5 w-5" />
               <span>Download</span>

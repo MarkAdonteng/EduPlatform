@@ -23,18 +23,23 @@ export interface Book {
   stock: number;
 }
 
-export interface Test {
-  id: string;
-  courseId: string;
-  title: string;
-  questions: Question[];
-}
-
 export interface Question {
   id: string;
   text: string;
   options: string[];
   correctAnswer: number;
+  feedback?: string;
+  points?: number;
+}
+
+export interface Test {
+  id: string;
+  courseId: string;
+  title: string;
+  questions: Question[];
+  timeLimit?: number; // in minutes
+  passingScore?: number; // percentage
+  giftFormat?: string; // Original GIFT format text
 }
 
 export interface Video {
@@ -51,6 +56,7 @@ export interface Material {
   title: string;
   type: 'pdf' | 'doc' | 'ppt' | 'other';
   url: string;
+  
   description?: string;
   createdAt: string;
   updatedAt: string;
