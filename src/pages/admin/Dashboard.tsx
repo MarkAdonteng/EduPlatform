@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCourseStore } from '../../store/courseStore';
 import AdminBookshop from './Bookshop';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
+import { useBookStore } from '../../store/bookStore';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('courses');
@@ -21,7 +22,7 @@ function AdminDashboard() {
   const [questions, setQuestions] = useState<{ text: string; options: string[]; correctAnswer: number; }[]>([
     { text: '', options: ['', '', '', ''], correctAnswer: 0 }
   ]);
-
+  const { addBook, updateBook,deleteBook } = useBookStore();
   const { 
     courses, 
     videos, 
@@ -56,11 +57,11 @@ function AdminDashboard() {
     { id: 'bookshop', label: 'Bookshop', icon: ShoppingBag },
   ];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
+  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   if (e.target.files && e.target.files[0]) {
+  //     setSelectedFile(e.target.files[0]);
+  //   }
+  // };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -98,6 +99,16 @@ function AdminDashboard() {
               updatedAt: new Date().toISOString()
             });
             break;
+            case 'bookshop':
+              await updateBook(editingItem.id, {
+                title: formData.get('title') as string,
+                author: formData.get('author') as string,
+                price: parseFloat(formData.get('price') as string),
+                imageUrl: formData.get('imageUrl') as string,
+                description: formData.get('description') as string,
+                stock: parseInt(formData.get('stock') as string, 10)
+              });
+              break;
         }
       } else {
         switch (activeTab) {
@@ -140,6 +151,16 @@ function AdminDashboard() {
               description: formData.get('description') as string,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
+            });
+            break;
+            case 'bookshop':
+            await addBook({
+              title: formData.get('title') as string,
+              author: formData.get('author') as string,
+              price: parseFloat(formData.get('price') as string),
+              imageUrl: formData.get('imageUrl') as string,
+              description: formData.get('description') as string,
+              stock: parseInt(formData.get('stock') as string, 10)
             });
             break;
         }
@@ -202,6 +223,9 @@ const handleConfirmDelete = async () => {
       case 'materials':
         if (deleteInfo.courseId) await deleteMaterial(deleteInfo.courseId, deleteInfo.id);
         break;
+        case 'bookshop':
+          await deleteBook(deleteInfo.id);
+          break;
     }
   } catch (error) {
     console.error(`Error deleting ${deleteInfo.type}:`, error);
@@ -412,7 +436,17 @@ const handleConfirmDelete = async () => {
           </div>
         );
         case 'bookshop':
-  return <AdminBookshop/>;
+        return (
+          <AdminBookshop 
+            onEdit={(book) => {
+              setEditingItem(book);
+              setShowModal(true);
+            }}
+            onDelete={handleDelete}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -649,6 +683,73 @@ const handleConfirmDelete = async () => {
               >
                 Add Question
               </button>
+            </div>
+          </>
+        );
+
+        case 'bookshop':
+        return (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Title</label>
+              <input
+                type="text"
+                name="title"
+                defaultValue={editingItem?.title}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Author</label>
+              <input
+                type="text"
+                name="author"
+                defaultValue={editingItem?.author}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Price</label>
+              <input
+                type="number"
+                name="price"
+                step="0.01"
+                defaultValue={editingItem?.price}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Image URL</label>
+              <input
+                type="url"
+                name="imageUrl"
+                defaultValue={editingItem?.imageUrl}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                name="description"
+                defaultValue={editingItem?.description}
+                rows={3}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Stock</label>
+              <input
+                type="number"
+                name="stock"
+                defaultValue={editingItem?.stock}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
             </div>
           </>
         );

@@ -8,7 +8,7 @@ interface BookState {
   loading: boolean;
   cart: { [key: string]: number };
   fetchBooks: () => Promise<void>;
-  addBook: (book: Book) => Promise<void>;
+  addBook: (book: Omit<Book, 'id'>) => Promise<void>;
   updateBook: (id: string, book: Partial<Book>) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;
   addToCart: (bookId: string) => void;
@@ -17,7 +17,7 @@ interface BookState {
   clearCart: () => void;
 }
 
-export const useBookStore = create<BookState>((set, _get) => ({
+export const useBookStore = create<BookState>((set) => ({
   books: [],
   loading: false,
   cart: {},
@@ -34,37 +34,51 @@ export const useBookStore = create<BookState>((set, _get) => ({
     }
   },
 
-  addBook: async (book) => {
+  addBook: async (bookData) => {
+    set({ loading: true });
     try {
-      const docRef = await addDoc(collection(db, 'books'), book);
-      const newBook = { ...book, id: docRef.id };
-      set(state => ({ books: [...state.books, newBook] }));
+      const docRef = await addDoc(collection(db, 'books'), bookData);
+      const newBook = { id: docRef.id, ...bookData };
+      set(state => ({ 
+        books: [...state.books, newBook],
+        loading: false 
+      }));
     } catch (error) {
       console.error('Error adding book:', error);
+      set({ loading: false });
       throw error;
     }
   },
 
-  updateBook: async (id, book) => {
+  updateBook: async (id, bookData) => {
+    set({ loading: true });
     try {
-      await updateDoc(doc(db, 'books', id), book);
+      const bookRef = doc(db, 'books', id);
+      await updateDoc(bookRef, bookData);
       set(state => ({
-        books: state.books.map(b => b.id === id ? { ...b, ...book } : b)
+        books: state.books.map(book => 
+          book.id === id ? { ...book, ...bookData } : book
+        ),
+        loading: false
       }));
     } catch (error) {
       console.error('Error updating book:', error);
+      set({ loading: false });
       throw error;
     }
   },
 
   deleteBook: async (id) => {
+    set({ loading: true });
     try {
       await deleteDoc(doc(db, 'books', id));
       set(state => ({
-        books: state.books.filter(b => b.id !== id)
+        books: state.books.filter(book => book.id !== id),
+        loading: false
       }));
     } catch (error) {
       console.error('Error deleting book:', error);
+      set({ loading: false });
       throw error;
     }
   },
