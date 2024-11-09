@@ -7,20 +7,20 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],
+      includeAssets: ['graduation.png', 'robots.txt', 'apple-touch-icon.png', 'mark.webp'],
       manifest: {
-        name: 'My Awesome App',
-        short_name: 'MyApp',
+        name: 'Marks Learning Lab',
+        short_name: 'Marks L.L',
         description: 'An awesome app built with Vite and React',
         theme_color: '#ffffff',
         icons: [
           {
-            src: 'icon-192x192.png',
+            src: 'graduation.png',  // Ensure this path is correct based on your `public` folder
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/webp'
           },
           {
-            src: 'icon-512x512.png',
+            src: 'graduation.png',
             sizes: '512x512',
             type: 'image/png'
           }
