@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['graduation.png', 'robots.txt', 'apple-touch-icon.png', 'mark.webp'],
       manifest: {
-        name: 'Marks Learning Lab',
-        short_name: 'Marks L.L',
-        description: 'An awesome app built with Vite and React',
+        name: 'Taylors Educational Express',
+        short_name: 'T.E.E',
+        description: 'Taylor E-learning platform',
         theme_color: '#ffffff',
         icons: [
           {

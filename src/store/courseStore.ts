@@ -111,7 +111,7 @@ export const useCourseStore = create<CourseState>((set, _get) => ({
   },
 
   updateCourse: async (idValue, course) => {
-    set({ loading: true });
+    // set({ loading: true });
     try {
       const coursesQuery = query(
         collection(db, 'courses'),
@@ -148,19 +148,30 @@ export const useCourseStore = create<CourseState>((set, _get) => ({
         where('id', '==', idValue)
       );
       const querySnapshot = await getDocs(coursesQuery);
-
+  
       if (!querySnapshot.empty) {
         const courseDocRef = querySnapshot.docs[0].ref;
         await deleteDoc(courseDocRef);
-
-        set(state => ({
-          courses: state.courses.filter(c => c.id !== idValue),
-          videos: { ...state.videos, [idValue]: [] },
-          tests: { ...state.tests, [idValue]: [] },
-          materials: { ...state.materials, [idValue]: [] },
-          loading: false
-        }));
-
+  
+        set((state) => {
+          const newVideos = { ...state.videos };
+          const newTests = { ...state.tests };
+          const newMaterials = { ...state.materials };
+  
+          // Remove the course data completely
+          delete newVideos[idValue];
+          delete newTests[idValue];
+          delete newMaterials[idValue];
+  
+          return {
+            courses: state.courses.filter((c) => c.id !== idValue),
+            videos: newVideos,
+            tests: newTests,
+            materials: newMaterials,
+            loading: false,
+          };
+        });
+  
         console.log(`Successfully deleted course with id field value: ${idValue}`);
       } else {
         console.log(`No course found with id field value: ${idValue}`);
@@ -172,7 +183,7 @@ export const useCourseStore = create<CourseState>((set, _get) => ({
       throw error;
     }
   },
-
+  
   addVideo: async (courseId, video) => {
     set({ loading: true });
     try {

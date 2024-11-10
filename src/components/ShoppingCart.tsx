@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingBag, X, Plus, Minus } from 'lucide-react';
 import { useBookStore } from '../store/bookStore';
 
@@ -9,6 +9,7 @@ interface ShoppingCartProps {
 
 function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
   const { books, cart, removeFromCart, updateCartQuantity } = useBookStore();
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
 
   const cartItems = Object.entries(cart).map(([bookId, quantity]) => {
     const book = books.find(b => b.id === bookId);
@@ -51,7 +52,7 @@ function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
                   />
                   <div className="flex-1">
                     <h3 className="font-medium">{item.title}</h3>
-                    <p className="text-gray-500">${item.price}</p>
+                    <p className="text-gray-500">GHC {item.price}</p>
                     <div className="flex items-center space-x-2 mt-2">
                       <button
                         onClick={() => updateCartQuantity(item.id, Math.max(0, item.quantity - 1))}
@@ -82,9 +83,10 @@ function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
           <div className="border-t p-4 space-y-4">
             <div className="flex justify-between items-center">
               <span className="font-medium">Total</span>
-              <span className="font-bold">${total.toFixed(2)}</span>
+              <span className="font-bold">GHC {total.toFixed(2)}</span>
             </div>
             <button
+              onClick={() => setIsCheckoutModalOpen(true)}
               disabled={cartItems.length === 0}
               className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -93,6 +95,24 @@ function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
           </div>
         </div>
       </div>
+
+      {/* Modal for Checkout Message */}
+      {isCheckoutModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold text-center mb-4">Notice</h3>
+            <p className="text-center text-gray-700">This feature is currently under development. Please check back soon!</p>
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setIsCheckoutModalOpen(false)}
+                className="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
