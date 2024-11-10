@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart as CartIcon, Plus } from 'lucide-react';
+import { ShoppingCart as CartIcon} from 'lucide-react';
 import { useBookStore } from '../../store/bookStore';
 import ShoppingCart from '../../components/ShoppingCart';
 
@@ -14,7 +15,7 @@ const Bookshop = () => {
 
   const cartItemsCount = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
 
-  const handleAddToCart = (bookId) => {
+  const handleAddToCart = (bookId:any) => {
     addToCart(bookId);
     setAddedToCart(bookId);
     setTimeout(() => setAddedToCart(null), 1000);
