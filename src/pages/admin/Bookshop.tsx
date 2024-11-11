@@ -24,7 +24,7 @@ function AdminBookshop({ onEdit, onDelete }: AdminBookshopProps) {
   }
 
   return (
-       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+    <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
       {books.map((book) => (
         <div key={book.id} className="bg-white rounded-lg shadow-md overflow-hidden">
           <img
