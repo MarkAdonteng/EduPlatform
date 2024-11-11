@@ -7,10 +7,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['TaylorEduExpress.jpg', 'robots.txt', 'apple-touch-icon.png', 'TaylorEduExpress.jpg'],
+      includeAssets: ['TaylorEduExpress.jpg', 'robots.txt', 'apple-touch-icon.png', 'mark.webp'],
       manifest: {
         name: 'Taylors Educational Express',
-        short_name: 'Taylors Educational Express',
+        short_name: 'TaylorEduExpress.jpg',
         description: 'Taylor E-learning platform',
         theme_color: '#ffffff',
         icons: [
