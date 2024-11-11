@@ -10,7 +10,7 @@ export default defineConfig({
       includeAssets: ['TaylorEduExpress.jpg', 'robots.txt', 'apple-touch-icon.png', 'mark.webp'],
       manifest: {
         name: 'Taylors Educational Express',
-        short_name: 'TaylorEduExpress.jpg',
+        short_name: 'TaylorEduExpres',
         description: 'Taylor E-learning platform',
         theme_color: '#ffffff',
         icons: [

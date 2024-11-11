@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children, allowedRole }: { children: React.ReactNode; 
 function App() {
   return (
     <>
-    <PaymentOverlay/>
+    {/* <PaymentOverlay/> */}
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
