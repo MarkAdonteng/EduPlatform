@@ -95,12 +95,16 @@ export const useCourseStore = create<CourseState>((set, _get) => ({
   addCourse: async (course) => {
     set({ loading: true });
     try {
+      // Add the course to the 'courses' collection and get its reference
       const docRef = await addDoc(collection(db, 'courses'), course);
       const docSnapshot = await getDoc(docRef);
       const newCourse = { id: docSnapshot.id, ...docSnapshot.data() } as Course;
-      
-      set(state => ({ 
-        courses: [...state.courses, newCourse],
+
+      // Update the state with the new course
+      set(state => ({
+        courses: state.courses.some(c => c.id === newCourse.id)
+          ? state.courses // If the course already exists, don't add it again
+          : [...state.courses, newCourse],
         loading: false 
       }));
     } catch (error) {
@@ -109,6 +113,7 @@ export const useCourseStore = create<CourseState>((set, _get) => ({
       throw error;
     }
   },
+
 
   updateCourse: async (idValue, course) => {
     // set({ loading: true });
@@ -143,26 +148,29 @@ export const useCourseStore = create<CourseState>((set, _get) => ({
   deleteCourse: async (idValue) => {
     set({ loading: true });
     try {
+      // First, query to get the Firestore document ID
       const coursesQuery = query(
         collection(db, 'courses'),
         where('id', '==', idValue)
       );
       const querySnapshot = await getDocs(coursesQuery);
-  
+
       if (!querySnapshot.empty) {
-        const courseDocRef = querySnapshot.docs[0].ref;
-        await deleteDoc(courseDocRef);
-  
+        // Get the Firestore document ID and delete it
+        const firestoreDocId = querySnapshot.docs[0].id;
+        const courseRef = doc(db, 'courses', firestoreDocId);
+        await deleteDoc(courseRef);
+
+        // Update the local state
         set((state) => {
           const newVideos = { ...state.videos };
           const newTests = { ...state.tests };
           const newMaterials = { ...state.materials };
-  
-          // Remove the course data completely
+
           delete newVideos[idValue];
           delete newTests[idValue];
           delete newMaterials[idValue];
-  
+
           return {
             courses: state.courses.filter((c) => c.id !== idValue),
             videos: newVideos,
@@ -171,10 +179,10 @@ export const useCourseStore = create<CourseState>((set, _get) => ({
             loading: false,
           };
         });
-  
-        console.log(`Successfully deleted course with id field value: ${idValue}`);
+
+        console.log(`Successfully deleted course with id: ${idValue}`);
       } else {
-        console.log(`No course found with id field value: ${idValue}`);
+        console.log(`No course found with id: ${idValue}`);
         set({ loading: false });
       }
     } catch (error) {
